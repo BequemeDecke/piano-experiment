@@ -19,7 +19,7 @@ canvas.height = 500;
 
 let button = document.getElementById("startButton");
 button.addEventListener("click", () => {
-    startGame();
+    startGame(melody, rate);
     button.remove();
 })
 
@@ -41,7 +41,7 @@ let melody = [
     ["F"],
     ["G"]
 ];
-let speed = 500; // Speed in milliseconds
+let rate = 2000; // Speed in milliseconds
 
 // --- Functions ---
 // Source: https://stackoverflow.com/questions/34708980/generate-sine-wave-and-play-it-in-the-browser
@@ -69,10 +69,48 @@ function drawKey(note, number=0, key="A", pressed=false, width=100, height=200) 
     context.fillText(key, (width + 10) * number + width / 2, canvas.height - height + height / 2, width, 20);
 }
 
-function startGame() {
-    setInterval(() => {
-        console.log(speed);
-    }, [speed])
+function spawnNotes(notes, rate) {
+    notes.forEach(n => {
+        const x = 20; // TODO: Calculate with respect to the positon of the keys
+        const yStart = 0;
+        const yEnd = canvas.height;
+
+        const timeStep = rate / 30; // How many times should the animation redraw the context
+        const positionStep = (yEnd - yStart) / timeStep;
+
+        let time = rate;
+        let y = yStart;
+        
+        const noteAnimation = setInterval(() => {
+            time -= timeStep;
+            if (time < 0) {
+                clearInterval(noteAnimation);
+            }
+            
+            y += positionStep;
+            console.log(y)
+            // How to set the position of the canvas rects? Redraw the canvas?
+        }, [timeStep])
+    })
+}
+
+function startGame(melody, rate) {
+
+    function* getKeys(melody) {
+        yield*(melody);
+    }
+
+    const nextKeys = getKeys(melody);
+
+    const gameLoop = setInterval(() => {
+        const keys = nextKeys.next();
+        if (keys.done) {
+            clearInterval(gameLoop)
+        } else {
+            console.log(keys.value);
+            spawnNotes(keys.value, rate)
+        }
+    }, [rate])
 }
 
 // --- Game Logic ---
