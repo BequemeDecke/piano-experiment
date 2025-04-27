@@ -39,7 +39,9 @@ let melody = [
     ["C"], 
     ["D", "E"],
     ["F"],
-    ["G"]
+    ["G"],
+    ["A"],
+    ["H"]
 ];
 let rate = 2000; // Speed in milliseconds
 
@@ -71,7 +73,8 @@ function drawKey(note, number=0, key="A", pressed=false, width=100, height=200) 
 
 function spawnNotes(notes, rate) {
     notes.forEach(n => {
-        const x = 20; // TODO: Calculate with respect to the positon of the keys
+        const number = keys.findIndex(k => k.tone === n);
+        const x = 110 * number + 50; // TODO: Calculate with respect to the positon of the keys
         const yStart = 0;
         const yEnd = canvas.height;
 
@@ -80,7 +83,7 @@ function spawnNotes(notes, rate) {
 
         let time = rate;
         let y = yStart;
-        
+
         const noteAnimation = setInterval(() => {
             time -= timeStep;
             if (time < 0) {
@@ -88,7 +91,9 @@ function spawnNotes(notes, rate) {
             }
             
             y += positionStep;
-            console.log(y)
+            
+            context.fillStyle = "black";
+            context.fillText("♪", x, y, positionStep, positionStep)
             // How to set the position of the canvas rects? Redraw the canvas?
         }, [timeStep])
     })
@@ -101,14 +106,20 @@ function startGame(melody, rate) {
     }
 
     const nextKeys = getKeys(melody);
+    let previous = null;
 
     const gameLoop = setInterval(() => {
-        const keys = nextKeys.next();
-        if (keys.done) {
+        const roundTones = nextKeys.next();
+        // TODO: Check if only the previous keys are pressed
+        if (!keys.find(k => k.tone === previous)?.pressed) {
+            console.log("Du Noob");
+        }
+
+        if (roundTones.done) {
             clearInterval(gameLoop)
         } else {
-            console.log(keys.value);
-            spawnNotes(keys.value, rate)
+            console.log(roundTones.value);
+            spawnNotes(roundTones.value, rate)
         }
     }, [rate])
 }
