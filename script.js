@@ -17,6 +17,13 @@ let keys = [
 canvas.width = keys.length * (100 + 10) - 10;
 canvas.height = 500;
 
+let button = document.getElementById("startButton");
+button.addEventListener("click", () => {
+    startGame();
+    button.remove();
+})
+
+// --- Variables ---
 let tones = {
     "C": 261.626,
     "D": 293.665,
@@ -26,8 +33,33 @@ let tones = {
     "A": 440,
     "H": 493.883,
 }
+// Multidimensional array to be able to press multiple keys simultaneously
+// TODO: Change the melody
+let melody = [
+    ["C"], 
+    ["D", "E"],
+    ["F"],
+    ["G"]
+];
+let speed = 500; // Speed in milliseconds
 
-let melody = [ ];
+// --- Functions ---
+// Source: https://stackoverflow.com/questions/34708980/generate-sine-wave-and-play-it-in-the-browser
+function playSound(arr) {
+    var buf = new Float32Array(arr.length)
+    for (var i = 0; i < arr.length; i++) buf[i] = arr[i]
+    var buffer = audioContext.createBuffer(1, buf.length, audioContext.sampleRate)
+    buffer.copyToChannel(buf, 0)
+    var source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+}
+
+function sineWaveAt(sampleNumber, tone) {
+    var sampleFreq = audioContext.sampleRate / tone
+    return Math.sin(sampleNumber / (sampleFreq / (Math.PI * 2)))
+}
 
 function drawKey(note, number=0, key="A", pressed=false, width=100, height=200) {
     context.fillStyle = pressed ? "green" : "black";
@@ -37,6 +69,13 @@ function drawKey(note, number=0, key="A", pressed=false, width=100, height=200) 
     context.fillText(key, (width + 10) * number + width / 2, canvas.height - height + height / 2, width, 20);
 }
 
+function startGame() {
+    setInterval(() => {
+        console.log(speed);
+    }, [speed])
+}
+
+// --- Game Logic ---
 document.addEventListener("keydown", e => {
     if(e.repeat) return;
 
@@ -68,20 +107,8 @@ setInterval(() => {
     keys.forEach((key, idx) => drawKey(null, idx, key.keyboard.replace(" ", "_").toUpperCase(), key.pressed));
 }, 20);
 
-
-// Source: https://stackoverflow.com/questions/34708980/generate-sine-wave-and-play-it-in-the-browser
-function playSound(arr) {
-    var buf = new Float32Array(arr.length)
-    for (var i = 0; i < arr.length; i++) buf[i] = arr[i]
-    var buffer = audioContext.createBuffer(1, buf.length, audioContext.sampleRate)
-    buffer.copyToChannel(buf, 0)
-    var source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-}
-
-function sineWaveAt(sampleNumber, tone) {
-    var sampleFreq = audioContext.sampleRate / tone
-    return Math.sin(sampleNumber / (sampleFreq / (Math.PI * 2)))
-}
+/*
+TODOs:
+- Move nodes
+- 
+*/
