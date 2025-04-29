@@ -5,19 +5,19 @@ let audioContext = new AudioContext();
 
 // TODO: maybe a few to many keys, reduce if needed
 let keys = [
-  { tone: "C", keyboard: "s", pressed: false },
-  { tone: "D", keyboard: "d", pressed: false },
-  { tone: "E", keyboard: "f", pressed: false },
-  { tone: "F", keyboard: " ", pressed: false },
-  { tone: "G", keyboard: "j", pressed: false },
-  { tone: "A", keyboard: "k", pressed: false },
-  { tone: "H", keyboard: "l", pressed: false },
+    { tone: "C", keyboard: "s", pressed: false },
+    { tone: "D", keyboard: "d", pressed: false },
+    { tone: "E", keyboard: "f", pressed: false },
+    { tone: "F", keyboard: " ", pressed: false },
+    { tone: "G", keyboard: "j", pressed: false },
+    { tone: "A", keyboard: "k", pressed: false },
+    { tone: "H", keyboard: "l", pressed: false },
 ];
 
-const positions = calculateKeyPositions(keys)
-
-canvas.width = keys.length * (100 + 10) - 10;
 canvas.height = 500;
+canvas.width = keys.length * (100 + 10) - 10;
+
+const positions = calculateKeyPositions(keys);
 
 let button = document.getElementById("startButton");
 button.addEventListener("click", () => {
@@ -62,20 +62,36 @@ function sineWaveAt(sampleNumber, tone) {
   return Math.sin(sampleNumber / (sampleFreq / (Math.PI * 2)));
 }
 
+function calculateKeyPositions(keys, x = 0, y = 0, width = 100, height = 200) {
+  return keys
+    .map(({ tone }, i) => ({
+      tone,
+      x: (width + 10) * i,
+      y: canvas.height - height,
+      width,
+      height,
+    }))
+    .reduce((map, i) => map.set(i.tone, i), new Map());
+}
+
 function drawKey(
-  note,
+  tone,
   number = 0,
   key = "A",
   pressed = false,
   width = 100,
   height = 200
 ) {
+  const position = positions.get(tone);
+  if (position == undefined) {
+    throw new Error(`No position defined for Tone: "${tone}"`);
+  }
   context.fillStyle = pressed ? "green" : "black";
   context.fillRect(
-    (width + 10) * number,
-    canvas.height - height,
-    width,
-    height
+    position.x,
+    position.y,
+    position.width,
+    position.height
   );
 
   context.fillStyle = "white";
@@ -86,16 +102,6 @@ function drawKey(
     width,
     20
   );
-}
-
-function calculateKeyPositions(keys, x = 0, y = 0, width = 100, height = 200) {
-  return keys.map(({ tone }, i) => ({
-    tone,
-    x: (width + 10) * i + width / 2,
-    y: canvas.height - height + height / 2,
-    width,
-    height,
-  })).reduce((map, i) => (map.set(i.tone, i)), new Map());
 }
 
 function startToneLoop(tone) {}
@@ -183,7 +189,7 @@ document.addEventListener("keyup", (e) => {
 setInterval(() => {
   keys.forEach((key, idx) =>
     drawKey(
-      null,
+      key.tone,
       idx,
       key.keyboard.replace(" ", "_").toUpperCase(),
       key.pressed
