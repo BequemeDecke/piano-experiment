@@ -123,11 +123,49 @@ function startToneLoop(tone, tolerance=100) {
     }, 20)
 }
 
-function startGame(melody, rate) {
-  function* getTones(melody) {
-    yield* melody;
+function playTone(tone, noteLength=0.75, fadeOut=0.5) {
+  let arr = [];
+  console.log(audioContext.sampleRate * noteLength)
+  for (var i = 0; i < audioContext.sampleRate * noteLength; i++) {
+    let remaining = noteLength - i / audioContext.sampleRate;
+    let mult = remaining <= fadeOut ? remaining / fadeOut : 1;
+    arr[i] = sineWaveAt(i, tones[tone]) * 0.3 * mult;
   }
+  console.log(arr);
+  playSound(arr);
+}
 
+function* getTones(melody) {
+  yield* melody;
+}
+
+function playMelody(melody) {
+  const nextTones = getTones(melody);
+
+  let lastKeys = [];
+  const playInterval = setInterval(() => {
+    // Clear last keys
+    lastKeys.forEach(key => key.pressed = false)
+    lastKeys = [];
+    // Play roundTones
+    const roundTones = nextTones.next();
+    if (roundTones.done) {
+      clearInterval(playInterval);
+    } else {
+      roundTones.value.forEach((tone, i) => {
+        playTone(tone);
+        const key = keys.find(key => key.tone === tone);
+        if (key != undefined) {
+          key.pressed = true;
+          lastKeys.push(key);
+        }
+      })
+    }
+  }, [rate])
+}
+
+function startGame(melody, rate) {
+  playMelody(melody)
   const nextTones = getTones(melody);
 
   const gameLoop = setInterval(() => {
@@ -149,16 +187,7 @@ document.addEventListener("keydown", (e) => {
     if (key.keyboard != e.key) continue;
     key.pressed = true;
 
-    let arr = [];
-    let noteLength = 0.75; // 0.75s total length
-    let fadeOut = 0.5; // fade out last 0.25s
-    for (var i = 0; i < audioContext.sampleRate * noteLength; i++) {
-      let remaining = noteLength - i / audioContext.sampleRate;
-      let mult = remaining <= fadeOut ? remaining / fadeOut : 1;
-      arr[i] = sineWaveAt(i, tones[key.tone]) * 0.3 * mult;
-    }
-
-    playSound(arr);
+    playTone(key.tone)
   }
 });
 
