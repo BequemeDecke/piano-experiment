@@ -62,6 +62,45 @@ function sineWaveAt(sampleNumber, tone) {
   return Math.sin(sampleNumber / (sampleFreq / (Math.PI * 2)));
 }
 
+function playMelody(melody) {
+  const nextTones = getTones(melody);
+
+  let lastKeys = [];
+  const playInterval = setInterval(() => {
+    // Clear last keys
+    lastKeys.forEach(key => key.pressed = false)
+    lastKeys = [];
+    // Play roundTones
+    const roundTones = nextTones.next();
+    if (roundTones.done) {
+      clearInterval(playInterval);
+    } else {
+      roundTones.value.forEach((tone, i) => {
+        playTone(tone);
+        const key = keys.find(key => key.tone === tone);
+        if (key != undefined) {
+          key.pressed = true;
+          lastKeys.push(key);
+        }
+      })
+    }
+  }, [rate])
+}
+
+function playTone(tone, noteLength=0.75, fadeOut=0.5) {
+  let arr = [];
+  for (var i = 0; i < audioContext.sampleRate * noteLength; i++) {
+    let remaining = noteLength - i / audioContext.sampleRate;
+    let mult = remaining <= fadeOut ? remaining / fadeOut : 1;
+    arr[i] = sineWaveAt(i, tones[tone]) * 0.3 * mult;
+  }
+  playSound(arr);
+}
+
+function* getTones(melody) {
+  yield* melody;
+}
+
 function calculateKeyPositions(keys, x = 0, y = 0, width = 100, height = 200) {
   return keys
     .map(({ tone }, i) => ({
@@ -104,67 +143,9 @@ function drawKey(
   );
 }
 
-function startToneLoop(tone, tolerance=100) {
-    const intervalDuration = 20; // in ms
-    let timeSteps = rate / intervalDuration;
-    const toleranceSteps = tolerance / intervalDuration;
-
-    // If the player pressed a key within the animation.end - tolerance interval, he succeeded
-    const toneLoop = setInterval(() => {
-        if (timeSteps < 0) {
-            clearInterval(toneLoop);
-            return;
-        }
-        timeSteps -= 1;
-        if(timeSteps <= toleranceSteps) {
-            // TODO: Player succeeded
-            console.log("Winner winner, chicken dinner")
-        }
-    }, 20)
-}
-
-function playTone(tone, noteLength=0.75, fadeOut=0.5) {
-  let arr = [];
-  console.log(audioContext.sampleRate * noteLength)
-  for (var i = 0; i < audioContext.sampleRate * noteLength; i++) {
-    let remaining = noteLength - i / audioContext.sampleRate;
-    let mult = remaining <= fadeOut ? remaining / fadeOut : 1;
-    arr[i] = sineWaveAt(i, tones[tone]) * 0.3 * mult;
-  }
-  console.log(arr);
-  playSound(arr);
-}
-
-function* getTones(melody) {
-  yield* melody;
-}
-
-function playMelody(melody) {
-  const nextTones = getTones(melody);
-
-  let lastKeys = [];
-  const playInterval = setInterval(() => {
-    // Clear last keys
-    lastKeys.forEach(key => key.pressed = false)
-    lastKeys = [];
-    // Play roundTones
-    const roundTones = nextTones.next();
-    if (roundTones.done) {
-      clearInterval(playInterval);
-    } else {
-      roundTones.value.forEach((tone, i) => {
-        playTone(tone);
-        const key = keys.find(key => key.tone === tone);
-        if (key != undefined) {
-          key.pressed = true;
-          lastKeys.push(key);
-        }
-      })
-    }
-  }, [rate])
-}
-
+// --- Game Logic ---
 function startGame(melody, rate) {
+  // Play melody and wait until finished
   playMelody(melody)
   const nextTones = getTones(melody);
 
@@ -173,13 +154,11 @@ function startGame(melody, rate) {
     if (roundTones.done) {
       clearInterval(gameLoop);
     } else {
-      console.log(roundTones.value);
       roundTones.value.forEach(startToneLoop)
     }
   }, [rate]);
 }
 
-// --- Game Logic ---
 document.addEventListener("keydown", (e) => {
   if (e.repeat) return;
 
