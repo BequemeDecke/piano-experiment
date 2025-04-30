@@ -21,7 +21,7 @@ const positions = calculateKeyPositions(keys);
 
 let button = document.getElementById("startButton");
 button.addEventListener("click", () => {
-  startGame(melody, rate);
+  playMelody(melody);
   button.remove();
 });
 
@@ -39,6 +39,8 @@ let tones = {
 // TODO: Change the melody
 let melody = [["C"], ["D", "E"], ["F"], ["G"], ["A"], ["H"]];
 let rate = 2000; // Speed in milliseconds
+const tolerance = 200; // ms
+const pressedKeyHistory = [];
 
 // --- Functions ---
 // Source: https://stackoverflow.com/questions/34708980/generate-sine-wave-and-play-it-in-the-browser
@@ -144,19 +146,15 @@ function drawKey(
 }
 
 // --- Game Logic ---
-function startGame(melody, rate) {
-  // Play melody and wait until finished
-  playMelody(melody)
-  const nextTones = getTones(melody);
-
-  const gameLoop = setInterval(() => {
-    const roundTones = nextTones.next();
-    if (roundTones.done) {
-      clearInterval(gameLoop);
-    } else {
-      roundTones.value.forEach(startToneLoop)
-    }
-  }, [rate]);
+function checkResult() {
+  if (pressedKeyHistory.length < melody.length) {
+    return; // Because not all timeStamps has passed
+  }
+  console.dir(pressedKeyHistory)
+  // TODO: Check tolerance
+  pressedKeyHistory.forEach(({key, timeStamp}) => {
+    
+  })
 }
 
 document.addEventListener("keydown", (e) => {
@@ -166,7 +164,10 @@ document.addEventListener("keydown", (e) => {
     if (key.keyboard != e.key) continue;
     key.pressed = true;
 
-    playTone(key.tone)
+    playTone(key.tone);
+
+    pressedKeyHistory.push({key, timeStamp});
+    checkResult();
   }
 });
 
