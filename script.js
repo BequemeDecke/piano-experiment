@@ -14,7 +14,7 @@ let keys = [
     { tone: "H", keyboard: "l", pressed: false },
 ];
 
-canvas.height = 500;
+canvas.height = 200;
 canvas.width = keys.length * (100 + 10) - 10;
 
 const positions = calculateKeyPositions(keys);
@@ -104,56 +104,39 @@ function drawKey(
   );
 }
 
-function startToneLoop(tone) {}
+function startToneLoop(tone, tolerance=100) {
+    const intervalDuration = 20; // in ms
+    let timeSteps = rate / intervalDuration;
+    const toleranceSteps = tolerance / intervalDuration;
 
-function spawnNotes(notes, rate) {
-  notes.forEach((n) => {
-    const number = keys.findIndex((k) => k.tone === n);
-    const x = 110 * number + 50; // TODO: Calculate with respect to the positon of the keys
-    const yStart = 0;
-    const yEnd = canvas.height;
-
-    const timeStep = rate / 30; // How many times should the animation redraw the context
-    const positionStep = (yEnd - yStart) / timeStep;
-
-    let time = rate;
-    let y = yStart;
-
-    const noteAnimation = setInterval(() => {
-      time -= timeStep;
-      if (time < 0) {
-        clearInterval(noteAnimation);
-      }
-
-      y += positionStep;
-
-      context.fillStyle = "black";
-      context.fillText("♪", x, y, positionStep, positionStep);
-      // How to set the position of the canvas rects? Redraw the canvas?
-    }, [timeStep]);
-  });
+    // If the player pressed a key within the animation.end - tolerance interval, he succeeded
+    const toneLoop = setInterval(() => {
+        if (timeSteps < 0) {
+            clearInterval(toneLoop);
+            return;
+        }
+        timeSteps -= 1;
+        if(timeSteps <= toleranceSteps) {
+            // TODO: Player succeeded
+            console.log("Winner winner, chicken dinner")
+        }
+    }, 20)
 }
 
 function startGame(melody, rate) {
-  function* getKeys(melody) {
+  function* getTones(melody) {
     yield* melody;
   }
 
-  const nextKeys = getKeys(melody);
-  let previous = null;
+  const nextTones = getTones(melody);
 
   const gameLoop = setInterval(() => {
-    const roundTones = nextKeys.next();
-    // TODO: Check if only the previous keys are pressed
-    if (!keys.find((k) => k.tone === previous)?.pressed) {
-      console.log("Du Noob");
-    }
-
+    const roundTones = nextTones.next();
     if (roundTones.done) {
       clearInterval(gameLoop);
     } else {
       console.log(roundTones.value);
-      spawnNotes(roundTones.value, rate);
+      roundTones.value.forEach(startToneLoop)
     }
   }, [rate]);
 }
@@ -196,9 +179,3 @@ setInterval(() => {
     )
   );
 }, 20);
-
-/*
-TODOs:
-- Move nodes
-- 
-*/
