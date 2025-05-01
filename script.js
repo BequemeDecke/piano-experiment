@@ -115,7 +115,7 @@ function playMelody() {
     const roundTones = nextTones.next();
     if (roundTones.done) {
       // Allow the user to play the melody. Counted time starts when a key is pressed (startTime == 0 as a magic value, see keydown listener)
-      statusText.innerText = "Play the melody";
+      statusText.innerText = "Play the melody (Enter to finish)";
       inputEnabled = true;
       pressedKeyHistory = [];
       startTime = 0;
