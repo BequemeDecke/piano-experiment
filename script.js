@@ -49,15 +49,21 @@ let startTime = 0; // Time since the playback started/the user has started playi
 let visualize = false;
 let noteCount = 4;
 
-document.getElementById("visualize").onchange = e => {
+let visualizeEl = document.getElementById("visualize");
+visualizeEl.checked = visualize;
+visualizeEl.onchange = e => {
   visualize = e.currentTarget.checked;
 }
 
-document.getElementById("notes").onchange = e => {
+let notesEl = document.getElementById("notes");
+notesEl.value = noteCount;
+notesEl.onchange = e => {
   noteCount = e.currentTarget.value;
 }
 
-document.getElementById("bpm").onchange = e => {
+let bpmEl = document.getElementById("bpm");
+bpmEl.value = bpm;
+bpmEl.onchange = e => {
   bpm = e.currentTarget.value;
   rate = 1 / bpm * 60 * 1000;
 }
@@ -227,8 +233,8 @@ function checkResult() {
   let text = "Average press delay: " + (pressDelay / totalNotes) + "ms\n";
 
   let correctPercentage = correctNotes / totalNotes; // 100% = all keys pressed correctly
-  let incorrectPercentage = 1 - pressedKeyHistory.length / totalNotes; // 100% = no incorrect keys
-  text += "Accuracy: " + (correctPercentage * incorrectPercentage * 100) + "%";
+  //let incorrectPercentage = 1 - pressedKeyHistory.length / totalNotes; // 100% = no incorrect keys
+  text += "Accuracy: " + (correctPercentage /* * incorrectPercentage */ * 100) + "%";
 
   statusText.innerText = text;
 }
@@ -237,7 +243,9 @@ document.addEventListener("keydown", (e) => {
   if (e.repeat || !inputEnabled) return;
 
   if(e.key == "Enter") {
-    inputEnabled = false;
+    inputEnabled = true;
+    button.disabled = false;
+    startTime = 0;
     checkResult();
   }
 
