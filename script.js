@@ -14,15 +14,17 @@ let keys = [
     { tone: "H", keyboard: "l", pressed: false },
 ];
 
-canvas.height = 200;
+canvas.height = 600;
 canvas.width = keys.length * (100 + 10) - 10;
 
 const positions = calculateKeyPositions(keys);
 
+let statusText = document.getElementById("status");
+
 let button = document.getElementById("startButton");
 button.addEventListener("click", () => {
-  playMelody(melody);
-  button.remove();
+  playMelody();
+  button.disabled = true;
 });
 
 // --- Variables ---
@@ -37,13 +39,28 @@ let tones = {
 };
 // Multidimensional array to be able to press multiple keys simultaneously
 // TODO: Change the melody
-let melody = [["E"], [], ["A"], ["H"], ["G"], [], ["D"], ["E"], ["C"]]; // TODO: add a tone delay for an actual rhythm
-let bpm = 100; // Beats per minute
+let melody = [["E"], [], ["A"], ["H"], ["G"], [], ["D"], ["E"], ["C"], [], [], [], ["C", "E", "G"]]; // TODO: add a tone delay for an actual rhythm
+let bpm = 80; // Beats per minute
 let rate = 1 / bpm * 60 * 1000; // Speed in milliseconds
 const tolerance = 2 * rate; // ms
 let pressedKeyHistory = [];
 let inputEnabled = true; // Whether to enable keyboard input, disabled when the melody is playing
-let startTime = Date.now();
+let startTime = 0; // Time since the playback started/the user has started playing the melody
+let visualize = false;
+let noteCount = 4;
+
+document.getElementById("visualize").onchange = e => {
+  visualize = e.currentTarget.checked;
+}
+
+document.getElementById("notes").onchange = e => {
+  noteCount = e.currentTarget.value;
+}
+
+document.getElementById("bpm").onchange = e => {
+  bpm = e.currentTarget.value;
+  rate = 1 / bpm * 60 * 1000;
+}
 
 // --- Functions ---
 // Source: https://stackoverflow.com/questions/34708980/generate-sine-wave-and-play-it-in-the-browser
@@ -67,7 +84,16 @@ function sineWaveAt(sampleNumber, tone) {
   return Math.sin(sampleNumber / (sampleFreq / (Math.PI * 2)));
 }
 
-function playMelody(melody) {
+function playMelody() {
+  statusText.innerText = "Playing melody";
+
+  // TODO: generate random melody
+  melody = [];
+  let possibleTones = Object.keys(tones);
+  for(let i = 0; i < noteCount; i++) {
+    melody.push([possibleTones[Math.floor(Math.random() * possibleTones.length)]]);
+  }
+
   inputEnabled = false;
   startTime = 0;
 
@@ -82,6 +108,8 @@ function playMelody(melody) {
     // Play roundTones
     const roundTones = nextTones.next();
     if (roundTones.done) {
+      // Allow the user to play the melody. Counted time starts when a key is pressed (startTime == 0 as a magic value, see keydown listener)
+      statusText.innerText = "Play the melody";
       inputEnabled = true;
       pressedKeyHistory = [];
       startTime = 0;
@@ -146,6 +174,7 @@ function drawKey(
   );
 
   context.fillStyle = "white";
+  context.font = "bold 1em sans-serif";
   context.fillText(
     key,
     (width + 10) * number + width / 2,
@@ -155,53 +184,71 @@ function drawKey(
   );
 }
 
+function drawVisualization(bottomY) {
+	
+}
+
 // --- Game Logic ---
 function checkResult() {
+  console.log(pressedKeyHistory, melody);
   if (pressedKeyHistory.length < melody.length) {
     return; // Because not all timeStamps has passed
   }
 
-  console.log("Results ----")
+  console.log("Results ----");
 
-  let currentPosition = 0;
-  let correctNotes = 0;
-  let totalNotes = 0;
-  let averagePressDelay = 0;
+  let currentPosition = 0; // Current position in the melody in ms
+  let correctNotes = 0; // Number of notes correctly played
+  let totalNotes = 0; // Total number of notes
+  let pressDelay = 0; // Sum of all the delays between the press and the actual note time
+
   for(let notes of melody) {
     for(let note of notes) {
+      // Retrieve the pressed key closest to the actual time of the note in the melody
       let closestPressedNote = pressedKeyHistory
         .filter(k => k.key.tone == note && Math.abs(k.timeStamp - currentPosition) <= tolerance)
-        .sort((a, b) => Math.abs(b.timeStamp - currentPosition) - Math.abs(a.timeStamp - currentPosition))[0]
-      console.log(closestPressedNote)
-      if(closestPressedNote != null) {
+        .sort((a, b) => Math.abs(a.timeStamp - currentPosition) - Math.abs(b.timeStamp - currentPosition))[0]
+
+      console.log(closestPressedNote);
+
+      if(closestPressedNote != null) { // If the correct key was pressed within the tolerance time, add a correct note to the score
         correctNotes++;
+        pressedKeyHistory.splice(pressedKeyHistory.indexOf(closestPressedNote), 1)
       }
-      averagePressDelay += closestPressedNote == null ? tolerance : Math.abs(closestPressedNote.timeStamp - currentPosition);
+
+      // Add the delay between the press time and the actual note time to the press delay, missed notes count as maximum possible delay (tolerance)
+      pressDelay += closestPressedNote == null ? tolerance : Math.abs(closestPressedNote.timeStamp - currentPosition);
       totalNotes++;
     }
-    currentPosition += rate;
+
+    currentPosition += rate; // Advance time by 1 beat
   }
-  console.log("Average delay: " + (averagePressDelay / totalNotes));
-  console.log("Accuracy: " + (correctNotes / totalNotes));
-  // TODO: Check tolerance
-  pressedKeyHistory.forEach(({key, timeStamp}) => {
-    
-  })
+
+  let text = "Average press delay: " + (pressDelay / totalNotes) + "ms\n";
+
+  let correctPercentage = correctNotes / totalNotes; // 100% = all keys pressed correctly
+  let incorrectPercentage = 1 - pressedKeyHistory.length / totalNotes; // 100% = no incorrect keys
+  text += "Accuracy: " + (correctPercentage * incorrectPercentage * 100) + "%";
+
+  statusText.innerText = text;
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.repeat || !inputEnabled) return;
 
-  if(startTime == 0) startTime = Date.now();
+  if(e.key == "Enter") {
+    inputEnabled = false;
+    checkResult();
+  }
 
   for (let key of keys) {
     if (key.keyboard != e.key) continue;
     key.pressed = true;
 
+    if(startTime == 0) startTime = Date.now();
     playTone(key.tone);
 
     pressedKeyHistory.push({key, timeStamp: Date.now() - startTime});
-    checkResult();
   }
 });
 
@@ -215,6 +262,8 @@ document.addEventListener("keyup", (e) => {
 });
 
 setInterval(() => {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
   keys.forEach((key, idx) =>
     drawKey(
       key.tone,
@@ -227,6 +276,7 @@ setInterval(() => {
   if(startTime != 0) {
     let beatIndicator = Math.floor((Date.now() - startTime) / rate) % 4;
     context.fillStyle = "orangered";
-    context.fillText(beatIndicator + 1, 20, 20);
+	context.font = "bold 24px sans-serif";
+    context.fillText(beatIndicator + 1, 10, 34);
   }
 }, 20);
