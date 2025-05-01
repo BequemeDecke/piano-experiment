@@ -191,7 +191,7 @@ function drawKey(
 }
 
 function drawVisualization(bottomY) {
-	
+	// TODO: add visualization with falling notes
 }
 
 // --- Game Logic ---
