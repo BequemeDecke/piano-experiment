@@ -4,7 +4,7 @@ let context = canvas.getContext("2d");
 let audioContext = new AudioContext();
 
 // TODO: maybe a few to many keys, reduce if needed
-let keys = [
+let keys7 = [
     { tone: "C", keyboard: "s", pressed: false },
     { tone: "D", keyboard: "d", pressed: false },
     { tone: "E", keyboard: "f", pressed: false },
@@ -14,10 +14,33 @@ let keys = [
     { tone: "H", keyboard: "l", pressed: false },
 ];
 
-canvas.height = 600;
-canvas.width = keys.length * (100 + 10) - 10;
+let keys5 = [
+    { tone: "C", keyboard: "d", pressed: false },
+    { tone: "D", keyboard: "f", pressed: false },
+    { tone: "E", keyboard: " ", pressed: false },
+    { tone: "F", keyboard: "j", pressed: false },
+    { tone: "G", keyboard: "k", pressed: false },
+];
 
-const positions = calculateKeyPositions(keys);
+let keys4 = [
+    { tone: "C", keyboard: "d", pressed: false },
+    { tone: "D", keyboard: "f", pressed: false },
+    { tone: "E", keyboard: "j", pressed: false },
+    { tone: "F", keyboard: "k", pressed: false },
+];
+
+let keys = keys7;
+
+let positions;
+
+function updateKeys() {
+  canvas.height = 600;
+  canvas.width = keys.length * (100 + 10) - 10;
+
+  positions = calculateKeyPositions(keys);
+}
+
+updateKeys();
 
 let statusText = document.getElementById("status");
 
@@ -38,15 +61,16 @@ let tones = {
   H: 493.883,
 };
 // Multidimensional array to be able to press multiple keys simultaneously
-// TODO: Change the melody
-let melody = [["E"], [], ["A"], ["H"], ["G"], [], ["D"], ["E"], ["C"], [], [], [], ["C", "E", "G"]]; // TODO: add a tone delay for an actual rhythm
+//let melody = [["E"], [], ["A"], ["H"], ["G"], [], ["D"], ["E"], ["C"], [], [], [], ["C", "E", "G"]];
+let melody = [];
 let bpm = 80; // Beats per minute
 let rate = 1 / bpm * 60 * 1000; // Speed in milliseconds
-const tolerance = 2 * rate; // ms
+const tolerance = 1 * rate; // ms
 let pressedKeyHistory = [];
 let inputEnabled = true; // Whether to enable keyboard input, disabled when the melody is playing
 let startTime = 0; // Time since the playback started/the user has started playing the melody
 let visualize = false;
+let visualizationActive = false;
 let noteCount = 4;
 
 let visualizeEl = document.getElementById("visualize");
@@ -66,6 +90,26 @@ bpmEl.value = bpm;
 bpmEl.onchange = e => {
   bpm = e.currentTarget.value;
   rate = 1 / bpm * 60 * 1000;
+}
+
+let keysEl = document.getElementById("keys");
+keysEl.value = "7";
+keysEl.onchange = e => {
+  switch(e.currentTarget.value) {
+    case "7": {
+      keys = keys7;
+      break;
+    }
+    case "5": {
+      keys = keys5;
+      break;
+    }
+    case "4": {
+      keys = keys4;
+      break;
+    }
+  }
+  updateKeys();
 }
 
 // --- Functions ---
@@ -95,7 +139,7 @@ function playMelody() {
 
   // TODO: generate random melody
   melody = [];
-  let possibleTones = Object.keys(tones);
+  let possibleTones = keys.map(k => k.tone);
   for(let i = 0; i < noteCount; i++) {
     melody.push([possibleTones[Math.floor(Math.random() * possibleTones.length)]]);
   }
@@ -119,6 +163,7 @@ function playMelody() {
       inputEnabled = true;
       pressedKeyHistory = [];
       startTime = 0;
+      visualizationActive = false;
       clearInterval(playInterval);
     } else {
       roundTones.value.forEach((tone, i) => {
@@ -131,6 +176,9 @@ function playMelody() {
       })
     }
   }, [rate])
+
+  visualizationActive = true;
+
 }
 
 function playTone(tone, noteLength=0.75, fadeOut=0.5) {
@@ -203,6 +251,8 @@ function checkResult() {
 
   console.log("Results ----");
 
+  let totalKeysPressed = pressedKeyHistory.length; // Total amount of keys pressed
+
   let currentPosition = 0; // Current position in the melody in ms
   let correctNotes = 0; // Number of notes correctly played
   let totalNotes = 0; // Total number of notes
@@ -232,9 +282,12 @@ function checkResult() {
 
   let text = "Average press delay: " + (pressDelay / totalNotes) + "ms\n";
 
+  text += "Correct tones of melody: " + correctNotes + "/" + totalNotes + "\n";
+  text += "Wrong presses: " + pressedKeyHistory.length + "/" + totalKeysPressed + "\n";
+
   let correctPercentage = correctNotes / totalNotes; // 100% = all keys pressed correctly
-  //let incorrectPercentage = 1 - pressedKeyHistory.length / totalNotes; // 100% = no incorrect keys
-  text += "Accuracy: " + (correctPercentage /* * incorrectPercentage */ * 100) + "%";
+  let incorrectPercentage = 1 - pressedKeyHistory.length / totalKeysPressed; // 100% = no incorrect keys
+  text += "Total accuracy: " + (correctPercentage * incorrectPercentage * 100) + "%";
 
   statusText.innerText = text;
 }
@@ -271,6 +324,25 @@ document.addEventListener("keyup", (e) => {
 
 setInterval(() => {
   context.clearRect(0, 0, canvas.width, canvas.height);
+  let offset = startTime == 0 ? 0 : Date.now() - startTime;
+
+  if(visualize && visualizationActive) {
+    let position = 0;
+    let height = canvas.height - 200;
+    let windowHeightMS = 2000;
+    for(let notes of melody) {
+      for(let note of notes) {
+        let pos = positions.get(note);
+
+        let y = (offset - position) / windowHeightMS * height + height;
+        let noteLength = rate / windowHeightMS * height * 0.75;
+
+        context.fillStyle = "limegreen";
+        context.fillRect(pos.x, y - noteLength, pos.width, noteLength);
+        position += rate;
+      }
+    }
+  }
 
   keys.forEach((key, idx) =>
     drawKey(
@@ -282,9 +354,11 @@ setInterval(() => {
   );
 
   if(startTime != 0) {
-    let beatIndicator = Math.floor((Date.now() - startTime) / rate) % 4;
+    let beatIndicator = Math.floor(offset / rate) % 4;
     context.fillStyle = "orangered";
-	context.font = "bold 24px sans-serif";
+    context.font = "bold 24px sans-serif";
     context.fillText(beatIndicator + 1, 10, 34);
+
+
   }
 }, 20);
