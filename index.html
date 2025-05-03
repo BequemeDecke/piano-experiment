@@ -13,6 +13,49 @@
         <p>By MrLetsplay & BequemeDecke</p>
     </header>
     <main>
+        <div><b>Parameters</b></div>
+        <div style="display:flex; flex-direction:row; gap:20px;">
+            <label>
+                <input id="visualize" type="checkbox">
+                Enable visualization
+            </label>
+            <label>
+                # of notes
+                <br>
+                <input id="notes" type="range" min="4" max="16" list="steplist">
+                <datalist id="steplist">
+                    <option>4</option>
+                    <option>8</option>
+                    <option>12</option>
+                    <option>16</option>
+                </datalist>
+            </label>
+            <label>
+                bpm
+                <br>
+                <input id="bpm" type="range" min="30" max="120" list="steplist2">
+                <datalist id="steplist2">
+                    <option>30</option>
+                    <option>60</option>
+                    <option>80</option>
+                    <option>100</option>
+                    <option>120</option>
+                </datalist>
+            </label>
+            <label>
+                Keymap
+                <br>
+                <select id="keys">
+                    <option value="7">7 keys</option>
+                    <option value="5">5 keys</option>
+                    <option value="4">4 keys</option>
+                </select>
+            </label>
+        </div>
+        <div>
+            <b>Status</b>
+            <div id="status">Experiment not started</div>
+        </div>
         <button id="startButton">Start Experiment</button>
         <canvas id="canvas"></canvas>
     </main>
